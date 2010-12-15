@@ -48,13 +48,14 @@ for my $site (keys %url) {
 		while (1) {
 		
 			my $html = $ua->get($url{$site})->res->body;
+            next unless $html;
 			my ($imgurl) = $html =~ /$regex{$site}/;
 			my $status = $board->read_all();
 			my ($old_imgurl) = split /\t/, $status->{$$}
 				if exists $status->{$$};
 
 			if ($old_imgurl && $old_imgurl eq $imgurl) {
-				sleep 5;
+				sleep 3;
 				next;
 			}
 
@@ -62,7 +63,7 @@ for my $site (keys %url) {
 			my $img = $ua->get($imgurl)->res->body;
 			$img = encode_base64($img);
 			$board->update("$imgurl\t$img");
-			sleep 5;
+			sleep 3;
 		
 		}
 	
@@ -82,9 +83,9 @@ my $loop = Mojo::IOLoop->singleton;
 
 websocket '/' => sub {
 	my $self = shift;
-	warn "\n*** Client connected\n\n";
+	warn "\n*** client connected\n\n";
 
-	$self->finished( sub { warn "\n*** Client disconnected\n" } );
+	$self->finished( sub { warn "\n*** client disconnected\n" } );
 
 	my $sender;
 	$sender = sub {
@@ -98,7 +99,7 @@ websocket '/' => sub {
 		}
 
 		$self->send_message($json->encode({ type => 'message', data => $msg }));
-		$loop->timer(1, $sender);
+		$loop->timer('0.5', $sender);
 
 	};
 
@@ -128,9 +129,8 @@ img {float: left; margin: 0 2px; width: 100px; height: 67px;}
 <body>
 <div id="content">Wait...</div>
 
-<script src="http://www.google.com/jsapi"></script>
-<script>google.load("jquery", "1.3")</script>
-<script src="https://github.com/vti/showmetheshell/raw/master/public/jquery.json.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+<script src="http://jquery-json.googlecode.com/files/jquery.json-2.2.min.js"></script>
 <script src="http://jquery-websocket.googlecode.com/files/jquery.websocket-0.0.1.js"></script>
 <script>
 var ws = $.websocket("ws://127.0.0.1:2012/", {
@@ -138,11 +138,6 @@ var ws = $.websocket("ws://127.0.0.1:2012/", {
 		message: function(e) { $('#content').html(e.data) }
 	}
 });
-$('#message').change(function(){
-  ws.send('message', this.value);
-  this.value = '';
-});
-
 </script>
 </body>
 </html>
