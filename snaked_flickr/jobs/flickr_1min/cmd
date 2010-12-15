@@ -1,0 +1,49 @@
+#!/usr/bin/env perl
+
+use strict;
+use Cwd 'abs_path';
+use FindBin qw($Bin);
+use LWP::UserAgent;
+
+my $flickr_root = 'http://www.flickr.com';
+my $flickr_explore = 'http://www.flickr.com/photos/';
+my $ua = LWP::UserAgent->new(agent => 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_5; en-US) AppleWebKit/534.10 (KHTML, like Gecko) Chrome/8.0.552.215 Safari/534.10', keep_alive => 1);
+my $datadir = abs_path("$Bin/../../data");
+
+my $res = $ua->get($flickr_explore);
+if ($res->is_success) {
+
+	my $html = $res->content;
+	my @queue;
+	my $regex = qr/<span class="photo_container[^<>]+?><a href="([^"]+?)"[^<>]+?><img src="([^"]+?)" width="100" height="67" alt="([^"]+?)"/i;
+
+	push @queue, [$flickr_root.$1, $2, $3] while $html =~ /$regex/g;
+	process_queue(\@queue);
+	
+} else {
+
+	die "Can't access $flickr_explore\n\nStatus: \n".$res->status_line."\n";
+}
+
+sub process_queue {
+	my $queue = shift;
+	return 1 unless @$queue;
+
+	for my $item (@$queue) {
+		my ($pageurl, $imgurl, $alt) = @$item;
+		my ($filename) = $imgurl =~ /\/([\w.-]+)$/;
+		next if -s "$datadir/$filename";
+		my $res = $ua->get($imgurl) unless -s "$datadir/$filename";
+
+		if ($res->is_success) {
+			open F, ">$datadir/$filename";
+			print F $res->content;
+			close F;
+
+			open TXT, ">$datadir/$filename.txt";
+			print TXT "$pageurl|$alt";
+			close TXT;
+		}
+	}
+}
+

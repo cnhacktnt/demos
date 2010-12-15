@@ -1,0 +1,96 @@
+#!/usr/bin/env perl
+
+use strict;
+use Cwd 'abs_path';;
+use FindBin qw($Bin);
+
+eval { require SSH::Batch };
+die "SSH::Batch is missing!\n" if $@; 
+
+my $datadir = abs_path("$Bin/../../data");
+
+opendir DIR, $datadir;
+my @images = grep { /\.jpg$/ } readdir DIR;
+close DIR;
+
+if (@images >= 30) {
+	
+	make_album(\@images);
+	my @args = qq(atnodes -p 55522 'rm -f /tmp/demo_snaked_flickr/*' -- wanghui.org chunzi.me);
+	system(@args) == 0
+		or die "system @args failed: $?\n";
+
+	@args = qq(tonodes -p 55522 -r $datadir/*.* -- wanghui.org chunzi.me :/tmp/demo_snaked_flickr/ 1>/dev/null);
+	system(@args) == 0
+		or die "system @args failed: $?\n";
+	system("rm -f $datadir/*");
+}
+
+exit;
+
+
+sub make_album {
+	my $images = shift;
+	my $index_file = "$datadir/index.html";
+	my $html;
+	{ 
+		local $/ = undef;	
+		$html = <DATA>;
+	}
+
+	my $content;
+	for (my $i=0; $i < (@$images - @$images % 6); $i++) {
+		open TXT, "$datadir/".$images->[$i].".txt";
+		my ($pageurl, $alt) = split /\|/, (<TXT>);
+		close TXT;
+
+		$content .=<<"HTML";
+		<p class="list">
+			<a href="$pageurl" title="$alt"><img src="$images->[$i]" width="100" height="67" alt="$alt" class="dropshadow"></a>
+		</p>
+
+HTML
+	}
+
+	$html =~ s/CONTENT/$content/;
+	open HTML, ">$index_file";
+	print HTML $html;
+	close HTML;
+	system("rm -f $datadir/*.txt");
+}
+
+
+
+__DATA__
+<!doctype html>
+<html>
+	<head>
+		<title>Fresh Flickr</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<style>
+			body { text-align: center; font-style: italic; font-family: 'Gill Sans', sans-serif }
+			img { border: 0 }
+			a { text-decoration: none }
+			#main { margin: 20px auto; padding: 0; width: 660px }
+			.list { float: left; padding: 0; margin: 0 5px; height: 77px }
+			.thumb {}
+			.clearfix:after { content: "."; display: block; height: 0; clear: both; visibility: hidden }
+			.clearfix { zoom: 1; display: inline-block; _height: 1px }
+			*html .clearfix { height: 1% }
+			.clearfix { display: block }
+			.dropshadow {
+			-moz-box-shadow: 3px 3px 4px #999; /* Firefox */
+			-webkit-box-shadow: 3px 3px 4px #999; /* Safari/Chrome */
+			box-shadow: 3px 3px 4px #999; /* Opera and other CSS3 supporting browsers */
+			-ms-filter: "progid:DXImageTransform.Microsoft.Shadow(Strength=4, Direction=135, Color='#999999')";/* IE 8 */
+			: progid:DXImageTransform.Microsoft.Shadow(Strength=4, Direction=135, Color='#999999');/* IE 5.5 - 7 */ 
+			}
+		</style>
+	</head>
+	<body>
+		<div id="main" class="clearfix">
+		<h1>Fresh Flickr</h1>
+		CONTENT
+		</div> 
+	</body>
+</html>
