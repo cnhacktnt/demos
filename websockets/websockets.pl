@@ -25,13 +25,13 @@ my $ua = Mojo::Client->new();
 my %url = (
 	flickr => 'http://www.flickr.com/photos/',
 	yupoo => 'http://www.yupoo.com/explore/',
-	smugmug => 'http://www.smugmug.com/browse/latest'
+	instagram => 'http://instagr.am/api/v1/feed/popular/'
 );
 
 my %regex = (
 	flickr => qr/<img src="([^"]+)"[^<>]+ class="pc_img"/,
 	yupoo => qr/<img src="([^"]+)"[^<>]+ class="Photo"/,
-	smugmug => qr/<img [^<>]+ src="([^"]+)" class="imgBorder"/
+	instagram => qr/"url": "(http:\/\/[^"]+?)", "width": 150,/
 );
 
 
